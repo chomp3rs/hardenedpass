@@ -42,9 +42,13 @@ public class Hpassword {
 			ArrayList<Point> pointList = (ArrayList<Point>)XYValuesMap.get(i);
 
 			    byte[] alphaData = BigInteger.valueOf(2 * i).toByteArray();
-				BigInteger keyedHashValAlpha = (KeyedHash.calculateKeyedHash( alphaData, password)).mod(q);
+				BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash( alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 				BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).mod(q);
-
+            
+				System.out.println("X Val ::" + pointList.get(0).getX());
+				System.out.println("Y Val ::" + pointList.get(0).getY());
+				BigInteger modGPM = keyedHashValAlpha.modInverse(q);
+				System.out.println("Y Val GPM ::" + alphaValue.multiply(modGPM).mod(q));
 				byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
 				BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash( betaData, password)).mod(q);
 				BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
@@ -145,6 +149,7 @@ public class Hpassword {
 		for(int j = 0 ; j < coeffArr.length ; j ++)
 			yVal = yVal.add(coeffArr[j].multiply(xVal.pow(j)));
 
+		System.out.println(" x, y :" + xVal + ":" + yVal +"\n");
 		return yVal;
 	}
 	private static BigInteger[] generateRandCoeffs(int m) {
