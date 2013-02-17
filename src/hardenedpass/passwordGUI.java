@@ -268,13 +268,15 @@ public class passwordGUI extends javax.swing.JFrame {
                 String instructionFileHash = numberInstruct.toString(16);
                 histFile = new File(histFileHash + ".txt");
                 instructFile = new File(instructionFileHash + ".txt");
+                //System.out.println("hist: " + histFile); //debug line
+                //System.out.println("inst: " + instructFile); //debug line
 
                 if (histFile.exists() && instructFile.exists()) {
                     loginPanel.setVisible(false);
                     questionsPanel.setVisible(true);
                 } else {
                     //do the initialization
-                    initialization(histFileHash, instructionFileHash);
+                    initialization(histFileHash, instructFile);
                 }
             } catch (NoSuchAlgorithmException ex) {
                 Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -303,61 +305,61 @@ public class passwordGUI extends javax.swing.JFrame {
             //this will set the feature values to either alpha or beta
             if (Integer.parseInt(givenQ1) < q1Thresh) {
                 f1 = new BigInteger(instructions[0][2]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count);
-                coords[count-1][1] = calcYCoord(f1, 'a', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count);
+                coords[count - 1][1] = calcYCoord(f1, 'a', count);
                 count++;
             } else {
                 f1 = new BigInteger(instructions[0][1]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count + 1);
-                coords[count-1][1] = calcYCoord(f1, 'b', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
+                coords[count - 1][1] = calcYCoord(f1, 'b', count);
                 count++;
             }
             System.out.println("coords[0]:  " + Arrays.toString(coords[0]));//debug line
             if (Integer.parseInt(givenQ2) < q2Thresh) {
                 f2 = new BigInteger(instructions[1][2]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count);
-                coords[count-1][1] = calcYCoord(f2, 'a', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count);
+                coords[count - 1][1] = calcYCoord(f2, 'a', count);
                 count++;
             } else {
                 f2 = new BigInteger(instructions[1][1]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count + 1);
-                coords[count-1][1] = calcYCoord(f2, 'b', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
+                coords[count - 1][1] = calcYCoord(f2, 'b', count);
                 count++;
             }
             System.out.println("coords[1]:  " + Arrays.toString(coords[1]));//debug line
             if (Integer.parseInt(givenQ3) < q3Thresh) {
                 f3 = new BigInteger(instructions[2][2]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count);
-                coords[count-1][1] = calcYCoord(f3, 'a', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count);
+                coords[count - 1][1] = calcYCoord(f3, 'a', count);
                 count++;
             } else {
                 f3 = new BigInteger(instructions[2][1]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count + 1);
-                coords[count-1][1] = calcYCoord(f3, 'b', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
+                coords[count - 1][1] = calcYCoord(f3, 'b', count);
                 count++;
             }
             System.out.println("coords[2]:  " + Arrays.toString(coords[2]));//debug line
             if (Integer.parseInt(givenQ4) < q4Thresh) {
                 f4 = new BigInteger(instructions[3][2]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count);
-                coords[count-1][1] = calcYCoord(f4, 'a', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count);
+                coords[count - 1][1] = calcYCoord(f4, 'a', count);
                 count++;
             } else {
                 f4 = new BigInteger(instructions[3][1]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count + 1);
-                coords[count-1][1] = calcYCoord(f4, 'b', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
+                coords[count - 1][1] = calcYCoord(f4, 'b', count);
                 count++;
             }
             System.out.println("coords[3]:  " + Arrays.toString(coords[3]));//debug line
             if (Integer.parseInt(givenQ5) < q5Thresh) {
                 f5 = new BigInteger(instructions[4][2]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count);
-                coords[count-1][1] = calcYCoord(f5, 'a', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count);
+                coords[count - 1][1] = calcYCoord(f5, 'a', count);
                 count++;
             } else {
                 f5 = new BigInteger(instructions[4][1]);
-                coords[count-1][0] = BigInteger.valueOf(2 * count + 1);
-                coords[count-1][1] = calcYCoord(f5, 'b', count);
+                coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
+                coords[count - 1][1] = calcYCoord(f5, 'b', count);
                 count++;
             }
             System.out.println("coords[4]:  " + Arrays.toString(coords[4]));//debug line
@@ -367,7 +369,7 @@ public class passwordGUI extends javax.swing.JFrame {
                 BigDecimal lamda = BigDecimal.valueOf(calcLamda(i, coords));
                 System.out.println("lamda " + i + ": " + lamda);//debug line
                 BigDecimal temp = new BigDecimal(coords[i][1]).multiply(lamda);
-                System.out.println("temp " + i + ": " + temp+"\n");//debug line
+                System.out.println("temp " + i + ": " + temp + "\n");//debug line
                 hardenedPW = hardenedPW.add(temp.toBigInteger().mod(prime));
             }
             System.out.println("recovered Hpw: " + hardenedPW);//debug line
@@ -438,7 +440,7 @@ public class passwordGUI extends javax.swing.JFrame {
     private javax.swing.JTextField usernameTextField;
     // End of variables declaration//GEN-END:variables
 
-    private void initialization(String histFileHash, String instructFileHash) {
+    private void initialization(String histFileHash, File instructFileHash) {
         Random randQ = new SecureRandom();
         BigInteger q = prime;
         System.out.println("Value for q is :" + q);
@@ -463,10 +465,10 @@ public class passwordGUI extends javax.swing.JFrame {
                 ArrayList<Point> pointList = (ArrayList<Point>) XYValuesMap.get(i);
 
 
-                BigInteger keyedHashValAlpha = (KeyedHash.calculateKeyedHash(2 * i, password)).mod(q);
+                BigInteger keyedHashValAlpha = (KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * i).toByteArray(), password)).mod(q);
                 BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).mod(q);
 
-                BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(2 * i + 1, password)).mod(q);
+                BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * i + 1).toByteArray(), password)).mod(q);
                 BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
 
@@ -540,16 +542,14 @@ public class passwordGUI extends javax.swing.JFrame {
         String password = new String(passwordTextField.getPassword());
         BigInteger q = prime;
         BigInteger yValue = BigInteger.valueOf(-1);
-        System.out.println("value: " + value);//debug line
+        
         try {
             if (type == 'a') {
-                yValue = value.divide(KeyedHash.calculateKeyedHash(2 * number, password)).mod(q);
-                System.out.println("hash:  " + KeyedHash.calculateKeyedHash(2 * number, password)); //debug line
-            } else {
-                yValue = value.divide(KeyedHash.calculateKeyedHash(2 * number + 1, password)).mod(q);
-                System.out.println("hash:  " + KeyedHash.calculateKeyedHash(2 * number + 1, password)); //debug line
-            }
+                yValue = value.multiply(KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * number).toByteArray(), password)).modInverse(q);
 
+            } else {
+                yValue = value.multiply(KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * number + 1).toByteArray(), password)).modInverse(q);
+            }
         } catch (SignatureException ex) {
             Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -560,11 +560,10 @@ public class passwordGUI extends javax.swing.JFrame {
         double val = 1;
         for (int k = 0; k < 5; k++) {
             if ((k) != i) {
-                System.out.println("k=" +coords[k][0].floatValue() + " i=" + coords[i][0].floatValue());
+                //System.out.println("k=" + coords[k][0].floatValue() + " i=" + coords[i][0].floatValue());
                 val *= coords[k][0].floatValue() / (coords[k][0].floatValue() - coords[i][0].floatValue());
             }
         }
-        System.out.println("val: " + val);
         return val;
     }
 }
