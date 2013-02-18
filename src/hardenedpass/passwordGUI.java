@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -20,6 +21,7 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import sun.misc.BASE64Decoder;
 
 public class passwordGUI extends javax.swing.JFrame {
 
@@ -40,6 +42,7 @@ public class passwordGUI extends javax.swing.JFrame {
     private int q4Thresh;
     private int q5Thresh;
     private BigInteger prime;
+    private int m = 5; // No of features
 
     public passwordGUI() {
         initComponents();
@@ -276,7 +279,7 @@ public class passwordGUI extends javax.swing.JFrame {
                     questionsPanel.setVisible(true);
                 } else {
                     //do the initialization
-                    initialization(histFileHash, instructFile);
+                    initialization(histFile, instructFile);
                 }
             } catch (NoSuchAlgorithmException ex) {
                 Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -304,75 +307,92 @@ public class passwordGUI extends javax.swing.JFrame {
 
             //this will set the feature values to either alpha or beta
             if (Integer.parseInt(givenQ1) < q1Thresh) {
-                f1 = new BigInteger(instructions[0][2]);
+                f1 = new BigInteger(instructions[0][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
                 coords[count - 1][1] = calcYCoord(f1, 'a', count);
                 count++;
             } else {
-                f1 = new BigInteger(instructions[0][1]);
+                f1 = new BigInteger(instructions[0][2]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
                 coords[count - 1][1] = calcYCoord(f1, 'b', count);
                 count++;
             }
             System.out.println("coords[0]:  " + Arrays.toString(coords[0]));//debug line
             if (Integer.parseInt(givenQ2) < q2Thresh) {
-                f2 = new BigInteger(instructions[1][2]);
+                f2 = new BigInteger(instructions[1][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
                 coords[count - 1][1] = calcYCoord(f2, 'a', count);
                 count++;
             } else {
-                f2 = new BigInteger(instructions[1][1]);
+                f2 = new BigInteger(instructions[1][2]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
                 coords[count - 1][1] = calcYCoord(f2, 'b', count);
                 count++;
             }
             System.out.println("coords[1]:  " + Arrays.toString(coords[1]));//debug line
             if (Integer.parseInt(givenQ3) < q3Thresh) {
-                f3 = new BigInteger(instructions[2][2]);
+                f3 = new BigInteger(instructions[2][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
                 coords[count - 1][1] = calcYCoord(f3, 'a', count);
                 count++;
             } else {
-                f3 = new BigInteger(instructions[2][1]);
+                f3 = new BigInteger(instructions[2][2]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
                 coords[count - 1][1] = calcYCoord(f3, 'b', count);
                 count++;
             }
             System.out.println("coords[2]:  " + Arrays.toString(coords[2]));//debug line
             if (Integer.parseInt(givenQ4) < q4Thresh) {
-                f4 = new BigInteger(instructions[3][2]);
+                f4 = new BigInteger(instructions[3][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
                 coords[count - 1][1] = calcYCoord(f4, 'a', count);
                 count++;
             } else {
-                f4 = new BigInteger(instructions[3][1]);
+                f4 = new BigInteger(instructions[3][2]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
                 coords[count - 1][1] = calcYCoord(f4, 'b', count);
                 count++;
             }
             System.out.println("coords[3]:  " + Arrays.toString(coords[3]));//debug line
             if (Integer.parseInt(givenQ5) < q5Thresh) {
-                f5 = new BigInteger(instructions[4][2]);
+                f5 = new BigInteger(instructions[4][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
                 coords[count - 1][1] = calcYCoord(f5, 'a', count);
                 count++;
             } else {
-                f5 = new BigInteger(instructions[4][1]);
+                f5 = new BigInteger(instructions[4][2]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count + 1);
                 coords[count - 1][1] = calcYCoord(f5, 'b', count);
                 count++;
             }
             System.out.println("coords[4]:  " + Arrays.toString(coords[4]));//debug line
 
-            BigInteger hardenedPW = BigInteger.ZERO;
-            for (int i = 0; i < 5; i++) {
-                BigDecimal lamda = BigDecimal.valueOf(calcLamda(i, coords));
-                System.out.println("lamda " + i + ": " + lamda);//debug line
-                BigDecimal temp = new BigDecimal(coords[i][1]).multiply(lamda);
-                System.out.println("temp " + i + ": " + temp + "\n");//debug line
-                hardenedPW = hardenedPW.add(temp.toBigInteger().mod(prime));
+            //the following recovers Hpw
+            BigInteger hpwdd = BigInteger.ZERO;
+            BigInteger in, num, den;
+            for (int i = 1; i <= m; i++) {
+                num = BigInteger.ONE;
+                den = BigInteger.ONE;
+
+                //this for loop calculates lambda values
+                for (int j = 1; j <= m; j++) {
+                    if (i != j) {
+                        BigInteger Xj = coords[j - 1][0];
+                        num = num.multiply(Xj);
+
+                        BigInteger Xi = coords[i - 1][0];
+                        den = den.multiply((Xj.subtract(Xi)));
+                    }
+                }
+                BigInteger Yi = coords[i - 1][1];
+                in = (Yi.multiply(num)).divide(den);
+
+                hpwdd = hpwdd.add(in);
+
             }
-            System.out.println("recovered Hpw: " + hardenedPW);//debug line
+            hpwdd = hpwdd.mod(prime);
+
+            System.out.println("Recalculating pwd :" + hpwdd);
 
         } catch (FileNotFoundException ex) {
             Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -440,21 +460,21 @@ public class passwordGUI extends javax.swing.JFrame {
     private javax.swing.JTextField usernameTextField;
     // End of variables declaration//GEN-END:variables
 
-    private void initialization(String histFileHash, File instructFileHash) {
+    private void initialization(File histFileHash, File instructFileHash) {
         Random randQ = new SecureRandom();
         BigInteger q = prime;
         System.out.println("Value for q is :" + q);
         BigInteger hpwd = getHPassword(q);
         System.out.println("Value for hpwd :" + hpwd);
 
-        String password = new String(passwordTextField.getPassword());
-
+        //String password = new String(passwordTextField.getPassword());
+        String password = "test";
         int m = 5; // No of features
         BigInteger[] coeffArr = generateRandCoeffs(m);
         coeffArr[0] = hpwd;
 
+        //create instruction file
         HashMap<Integer, ArrayList<Point>> XYValuesMap = generateXYValues(coeffArr, m);
-
         Iterator iter = XYValuesMap.keySet().iterator();
         try {
             BufferedWriter bw = new BufferedWriter(new FileWriter(instructFileHash));
@@ -464,11 +484,16 @@ public class passwordGUI extends javax.swing.JFrame {
 
                 ArrayList<Point> pointList = (ArrayList<Point>) XYValuesMap.get(i);
 
-
-                BigInteger keyedHashValAlpha = (KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * i).toByteArray(), password)).mod(q);
+                byte[] alphaData = BigInteger.valueOf(2 * i).toByteArray();
+                BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash(alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
                 BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).mod(q);
 
-                BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * i + 1).toByteArray(), password)).mod(q);
+                System.out.println("X Val ::" + pointList.get(0).getX());
+                System.out.println("Y Val ::" + pointList.get(0).getY());
+                BigInteger modGPM = keyedHashValAlpha.modInverse(q);
+                System.out.println("Y Val GPM ::" + alphaValue.multiply(modGPM).mod(q));
+                byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
+                BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
                 BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
 
@@ -479,6 +504,63 @@ public class passwordGUI extends javax.swing.JFrame {
             }
 
             bw.close();
+
+            // Creation of history file
+            int h = 20; // Num of max past logins
+            int maxHistorySize = 3200; // 2000 Bytes
+            String initialFeatureVals = "0,0,0,0,0";
+            String fileContent = "";
+            for (int i = 1; i < 20; i++) {
+                fileContent += initialFeatureVals + "\n";
+            }
+
+            try {
+                BigInteger contentHashVal = KeyedHash.calculateKeyedHash(initialFeatureVals.getBytes(), password);
+                String contentHashString = new String(contentHashVal.toByteArray());
+
+                int mesgLength = fileContent.getBytes().length + contentHashString.getBytes().length;
+
+
+                System.out.println("Content size is:" + mesgLength);
+
+                int cipherLen = (mesgLength / 16 + 1) * 16;
+
+                int padLength = ((maxHistorySize) * (mesgLength)) / cipherLen - cipherLen;
+                System.out.println("Padlength :" + padLength);
+                for (int i = 0; i < padLength - 1; i++) {
+                    fileContent += '#';
+                }
+
+                fileContent += '\n';
+
+                fileContent += contentHashString;
+                System.out.println("File content length :" + fileContent.getBytes().length);
+                System.out.println(fileContent);
+
+                System.out.println("Padlength :" + padLength + "\n");
+                System.out.println("Cipher Length :" + cipherLen);
+                // Generate the AES 256 bit key
+
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                md.update(hpwd.toByteArray());
+                byte[] aesKey = md.digest();
+                System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
+
+                String encryptedVal = AES.encrypt(fileContent, aesKey);
+                System.out.println("Encrypted file content :" + encryptedVal + "\n Enc File Size :" + new BASE64Decoder().decodeBuffer(encryptedVal).length);
+
+                // Output to history file
+                PrintWriter out = new PrintWriter(new FileWriter(histFileHash));
+                out.print(encryptedVal);
+
+                out.close();
+                String decryptedVal = AES.decrypt(encryptedVal, aesKey);
+                System.out.println("Decrypted String : " + decryptedVal);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
             loginPanel.setVisible(false);
             successPanel.setVisible(true);
         } catch (Exception e) {
@@ -497,6 +579,8 @@ public class passwordGUI extends javax.swing.JFrame {
             ArrayList<Point> pointsList = new ArrayList<Point>();
             pointsList.add(firstVal);
             pointsList.add(secondVal);
+            System.out.println("x: " + firstVal.getX());
+            System.out.println("y: " + firstVal.getY());
             XYValuesMap.put(i, pointsList);
         }
 
@@ -539,31 +623,33 @@ public class passwordGUI extends javax.swing.JFrame {
     //type specifies if it is alpha or beta
     //number specifies which feature number it is
     private BigInteger calcYCoord(BigInteger value, char type, int number) {
-        String password = new String(passwordTextField.getPassword());
+        //String password = new String(passwordTextField.getPassword());
+        String password = "test";
         BigInteger q = prime;
         BigInteger yValue = BigInteger.valueOf(-1);
-        
+
         try {
             if (type == 'a') {
-                yValue = value.multiply(KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * number).toByteArray(), password)).modInverse(q);
+                //System.out.println("a feature num , val " + number + "," + value);
+                //System.out.println("q val" + q);
+                byte[] alphaData = BigInteger.valueOf(2 * number).toByteArray();
+                BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash(alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
+                //System.out.println("keyedHash: " + keyedHashValAlpha);
+                BigInteger modGPM = keyedHashValAlpha.modInverse(q);
+                //System.out.println("Y Val GPM ::" + value.multiply(modGPM).mod(q));
+                yValue = value.multiply(modGPM).mod(q);
 
             } else {
-                yValue = value.multiply(KeyedHash.calculateKeyedHash(BigInteger.valueOf(2 * number + 1).toByteArray(), password)).modInverse(q);
+                byte[] betaData = BigInteger.valueOf(2 * number + 1).toByteArray();
+                BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
+                //System.out.println("keyedHash: " + keyedHashValBeta);
+                BigInteger modGPM = keyedHashValBeta.modInverse(q);
+                //System.out.println("Y Val GPM ::" + value.multiply(modGPM).mod(q));
+                yValue = value.multiply(modGPM).mod(q);
             }
         } catch (SignatureException ex) {
             Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
         }
         return yValue;
-    }
-
-    private double calcLamda(int i, BigInteger coords[][]) {
-        double val = 1;
-        for (int k = 0; k < 5; k++) {
-            if ((k) != i) {
-                //System.out.println("k=" + coords[k][0].floatValue() + " i=" + coords[i][0].floatValue());
-                val *= coords[k][0].floatValue() / (coords[k][0].floatValue() - coords[i][0].floatValue());
-            }
-        }
-        return val;
     }
 }
