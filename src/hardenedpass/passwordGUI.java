@@ -22,8 +22,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.commons.io.FileUtils;
+
 import sun.misc.BASE64Decoder;
 
 public class passwordGUI extends javax.swing.JFrame {
@@ -296,26 +300,23 @@ public class passwordGUI extends javax.swing.JFrame {
             BigInteger f1, f2, f3, f4, f5;
             BigInteger coords[][] = new BigInteger[5][2];
             int count = 1;
-            BufferedReader read = new BufferedReader(new FileReader(instructFile));
+                        
+            
             String instructions[][] = new String[5][];
+            String encFileContent = FileUtils.readFileToString(instructFile); 
+            
+            System.out.println("Encrypted File Content : " + encFileContent);
+            String password = new String(passwordTextField.getPassword());
+            MessageDigest mdInstn = MessageDigest.getInstance("SHA-256");
+    		mdInstn.update(password.getBytes());
+    		byte[] aesInstnKey = mdInstn.digest();
+    		String fileContent = AES.decrypt(encFileContent, aesInstnKey);
+    		System.out.println("File Content : " + fileContent);
+    		
+    		String[] fileContentLines = fileContent.split("\n");
+    		
             for (int i = 0; i < 5; i++) {
-            	String password = new String(passwordTextField.getPassword());
-        		MessageDigest mdInstn = MessageDigest.getInstance("SHA-256");
-        		mdInstn.update(password.getBytes());
-        		byte[] aesInstnKey = mdInstn.digest();
-        		System.out.println("AES Key Size:" + aesInstnKey.length + aesInstnKey.toString());
-        		String input = read.readLine();
-        		System.out.println("Line :"  +input );
-        		String[] instnContent = input.split(",");
-        		System.out.println("Instn Length" + instnContent.length);
-        		for(int j = 0; j < instnContent.length ; j ++ )
-        		{
-        			
-        			System.out.println(instnContent[j]);
-        			instnContent[j] = AES.decrypt(instnContent[j],aesInstnKey);
-        		}
-        		
-                instructions[i] = instnContent;
+                  instructions[i] = fileContentLines[i].split(",");
             }
 
             givenQ1 = campusTextField.getText();
@@ -412,8 +413,38 @@ public class passwordGUI extends javax.swing.JFrame {
             hpwdd = hpwdd.mod(prime);
 
             System.out.println("Recalculating pwd :" + hpwdd);
+            
+            String encHistContent = FileUtils.readFileToString(histFile); 
+            System.out.println("encHistContent" + encHistContent);
+            
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(hpwdd.toByteArray());
+            byte[] aesKey = md.digest();
+          //  System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
+
+            
+            String histFileContent = AES.decrypt(encHistContent, aesKey);
+    		System.out.println("History File Content : " + histFileContent);
+    		
+    		
+    		histFileContent = histFileContent.replaceAll("#", "");
+    		System.out.println("Hist after rem padding" + histFileContent);
+    		String[] histContArr = histFileContent.split("Hash Value :");
+    		String histcontent = histContArr[0];
+    		System.out.print("histcontent" + histcontent);
+    		BigInteger histcontentHashVal = KeyedHash.calculateKeyedHash(histcontent.getBytes(), password);
+            String histcontentHashString = new String(histcontentHashVal.toByteArray());
+            System.out.println("histcontentHashVal" + histcontentHashString);
+    		String hashString = histContArr[1];
+    		System.out.println("file hash string" + hashString);
+            
+    		if(hashString.equals(histcontentHashString))
+    			System.out.println("Hash values match!");
 
         } 
+        catch (SignatureException ex) {
+            java.util.logging.Logger.getLogger(passwordGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
         catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
         } catch (FileNotFoundException ex) {
@@ -439,13 +470,17 @@ public class passwordGUI extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
+        } 
+        catch (ClassNotFoundException ex) {
             java.util.logging.Logger.getLogger(passwordGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
+        } 
+        catch (InstantiationException ex) {
             java.util.logging.Logger.getLogger(passwordGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
+        }
+        catch (IllegalAccessException ex) {
             java.util.logging.Logger.getLogger(passwordGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } 
+        catch (javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(passwordGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
@@ -498,6 +533,7 @@ public class passwordGUI extends javax.swing.JFrame {
         //create instruction file
         HashMap<Integer, ArrayList<Point>> XYValuesMap = generateXYValues(coeffArr, m);
         Iterator iter = XYValuesMap.keySet().iterator();
+        String instnfileContent = new String();
         try {
             BufferedWriter bw = new BufferedWriter(new FileWriter(instructFileHash));
             while (iter.hasNext()) {
@@ -519,20 +555,18 @@ public class passwordGUI extends javax.swing.JFrame {
                 BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
                 
-                MessageDigest mdInstn = MessageDigest.getInstance("SHA-256");
-        		mdInstn.update(password.getBytes());
-        		byte[] aesInstnKey = mdInstn.digest();
-        		System.out.println("AES Key Size:" + aesInstnKey.length + aesInstnKey.toString());
-        		
-        		String rowContent = AES.encrypt(i.toString(), aesInstnKey) + "," + AES.encrypt(alphaValue.toString(), aesInstnKey)  + "," + AES.encrypt(betaValue.toString(), aesInstnKey);
-                
-                bw.write(rowContent);
-                bw.newLine();
-
-
+                String contentRow = i + "," + alphaValue + "," + betaValue +"\n" ;
+				instnfileContent += contentRow;
             }
-
-            bw.close();
+        	MessageDigest mdInstn = MessageDigest.getInstance("SHA-256");
+    		mdInstn.update(password.getBytes());
+    		byte[] aesInstnKey = mdInstn.digest();
+    		System.out.println("AES Key Size:" + aesInstnKey.length + aesInstnKey.toString());
+    		
+    		String encryptedVal = AES.encrypt(instnfileContent, aesInstnKey);
+    		bw.write(encryptedVal);
+    		bw.close();
+            
 
             // Creation of history file
             int h = 20; // Num of max past logins
@@ -544,12 +578,12 @@ public class passwordGUI extends javax.swing.JFrame {
             }
 
             try {
-                BigInteger contentHashVal = KeyedHash.calculateKeyedHash(initialFeatureVals.getBytes(), password);
+                BigInteger contentHashVal = KeyedHash.calculateKeyedHash(fileContent.getBytes(), password);
                 String contentHashString = new String(contentHashVal.toByteArray());
 
                 int mesgLength = fileContent.getBytes().length + contentHashString.getBytes().length;
-
-
+                System.out.println("Hash String Length" + contentHashString.getBytes().length);
+ 
            //     System.out.println("Content size is:" + mesgLength);
 
                 int cipherLen = (mesgLength / 16 + 1) * 16;
@@ -560,7 +594,7 @@ public class passwordGUI extends javax.swing.JFrame {
                     fileContent += '#';
                 }
 
-                fileContent += '\n';
+                fileContent += "Hash Value :";
 
                 fileContent += contentHashString;
                /* System.out.println("File content length :" + fileContent.getBytes().length);
@@ -575,16 +609,16 @@ public class passwordGUI extends javax.swing.JFrame {
                 byte[] aesKey = md.digest();
               //  System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
 
-                String encryptedVal = AES.encrypt(fileContent, aesKey);
+                String encryptedVal1 = AES.encrypt(fileContent, aesKey);
                // System.out.println("Encrypted file content :" + encryptedVal + "\n Enc File Size :" + new BASE64Decoder().decodeBuffer(encryptedVal).length);
 
                 // Output to history file
                 PrintWriter out = new PrintWriter(new FileWriter(histFileHash));
-                out.print(encryptedVal);
+                out.print(encryptedVal1);
 
                 out.close();
-                String decryptedVal = AES.decrypt(encryptedVal, aesKey);
-               // System.out.println("Decrypted String : " + decryptedVal);
+                String decryptedVal = AES.decrypt(encryptedVal1, aesKey);
+                System.out.println("Decrypted String : " + decryptedVal);
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
