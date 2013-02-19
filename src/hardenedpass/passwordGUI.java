@@ -1,5 +1,8 @@
 package hardenedpass;
 
+import hardenedpass.AES;
+import hardenedpass.KeyedHash;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -296,7 +299,23 @@ public class passwordGUI extends javax.swing.JFrame {
             BufferedReader read = new BufferedReader(new FileReader(instructFile));
             String instructions[][] = new String[5][];
             for (int i = 0; i < 5; i++) {
-                instructions[i] = read.readLine().split(",");
+            	String password = new String(passwordTextField.getPassword());
+        		MessageDigest mdInstn = MessageDigest.getInstance("SHA-256");
+        		mdInstn.update(password.getBytes());
+        		byte[] aesInstnKey = mdInstn.digest();
+        		System.out.println("AES Key Size:" + aesInstnKey.length + aesInstnKey.toString());
+        		String input = read.readLine();
+        		System.out.println("Line :"  +input );
+        		String[] instnContent = input.split(",");
+        		System.out.println("Instn Length" + instnContent.length);
+        		for(int j = 0; j < instnContent.length ; j ++ )
+        		{
+        			
+        			System.out.println(instnContent[j]);
+        			instnContent[j] = AES.decrypt(instnContent[j],aesInstnKey);
+        		}
+        		
+                instructions[i] = instnContent;
             }
 
             givenQ1 = campusTextField.getText();
@@ -317,7 +336,7 @@ public class passwordGUI extends javax.swing.JFrame {
                 coords[count - 1][1] = calcYCoord(f1, 'b', count);
                 count++;
             }
-            System.out.println("coords[0]:  " + Arrays.toString(coords[0]));//debug line
+           // System.out.println("coords[0]:  " + Arrays.toString(coords[0]));//debug line
             if (Integer.parseInt(givenQ2) < q2Thresh) {
                 f2 = new BigInteger(instructions[1][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
@@ -329,7 +348,7 @@ public class passwordGUI extends javax.swing.JFrame {
                 coords[count - 1][1] = calcYCoord(f2, 'b', count);
                 count++;
             }
-            System.out.println("coords[1]:  " + Arrays.toString(coords[1]));//debug line
+          //  System.out.println("coords[1]:  " + Arrays.toString(coords[1]));//debug line
             if (Integer.parseInt(givenQ3) < q3Thresh) {
                 f3 = new BigInteger(instructions[2][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
@@ -341,7 +360,7 @@ public class passwordGUI extends javax.swing.JFrame {
                 coords[count - 1][1] = calcYCoord(f3, 'b', count);
                 count++;
             }
-            System.out.println("coords[2]:  " + Arrays.toString(coords[2]));//debug line
+           // System.out.println("coords[2]:  " + Arrays.toString(coords[2]));//debug line
             if (Integer.parseInt(givenQ4) < q4Thresh) {
                 f4 = new BigInteger(instructions[3][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
@@ -353,7 +372,7 @@ public class passwordGUI extends javax.swing.JFrame {
                 coords[count - 1][1] = calcYCoord(f4, 'b', count);
                 count++;
             }
-            System.out.println("coords[3]:  " + Arrays.toString(coords[3]));//debug line
+          // System.out.println("coords[3]:  " + Arrays.toString(coords[3]));//debug line
             if (Integer.parseInt(givenQ5) < q5Thresh) {
                 f5 = new BigInteger(instructions[4][1]);
                 coords[count - 1][0] = BigInteger.valueOf(2 * count);
@@ -365,7 +384,7 @@ public class passwordGUI extends javax.swing.JFrame {
                 coords[count - 1][1] = calcYCoord(f5, 'b', count);
                 count++;
             }
-            System.out.println("coords[4]:  " + Arrays.toString(coords[4]));//debug line
+        //    System.out.println("coords[4]:  " + Arrays.toString(coords[4]));//debug line
 
             //the following recovers Hpw
             BigInteger hpwdd = BigInteger.ZERO;
@@ -394,6 +413,9 @@ public class passwordGUI extends javax.swing.JFrame {
 
             System.out.println("Recalculating pwd :" + hpwdd);
 
+        } 
+        catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -463,12 +485,12 @@ public class passwordGUI extends javax.swing.JFrame {
     private void initialization(File histFileHash, File instructFileHash) {
         Random randQ = new SecureRandom();
         BigInteger q = prime;
-        System.out.println("Value for q is :" + q);
+   //     System.out.println("Value for q is :" + q);
         BigInteger hpwd = getHPassword(q);
         System.out.println("Value for hpwd :" + hpwd);
 
-        //String password = new String(passwordTextField.getPassword());
-        String password = "test";
+        String password = new String(passwordTextField.getPassword());
+/*        String password = "test";*/
         int m = 5; // No of features
         BigInteger[] coeffArr = generateRandCoeffs(m);
         coeffArr[0] = hpwd;
@@ -496,8 +518,15 @@ public class passwordGUI extends javax.swing.JFrame {
                 BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
                 BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
-
-                bw.write(i + "," + alphaValue + "," + betaValue);
+                
+                MessageDigest mdInstn = MessageDigest.getInstance("SHA-256");
+        		mdInstn.update(password.getBytes());
+        		byte[] aesInstnKey = mdInstn.digest();
+        		System.out.println("AES Key Size:" + aesInstnKey.length + aesInstnKey.toString());
+        		
+        		String rowContent = AES.encrypt(i.toString(), aesInstnKey) + "," + AES.encrypt(alphaValue.toString(), aesInstnKey)  + "," + AES.encrypt(betaValue.toString(), aesInstnKey);
+                
+                bw.write(rowContent);
                 bw.newLine();
 
 
@@ -521,12 +550,12 @@ public class passwordGUI extends javax.swing.JFrame {
                 int mesgLength = fileContent.getBytes().length + contentHashString.getBytes().length;
 
 
-                System.out.println("Content size is:" + mesgLength);
+           //     System.out.println("Content size is:" + mesgLength);
 
                 int cipherLen = (mesgLength / 16 + 1) * 16;
 
                 int padLength = ((maxHistorySize) * (mesgLength)) / cipherLen - cipherLen;
-                System.out.println("Padlength :" + padLength);
+              //  System.out.println("Padlength :" + padLength);
                 for (int i = 0; i < padLength - 1; i++) {
                     fileContent += '#';
                 }
@@ -534,20 +563,20 @@ public class passwordGUI extends javax.swing.JFrame {
                 fileContent += '\n';
 
                 fileContent += contentHashString;
-                System.out.println("File content length :" + fileContent.getBytes().length);
+               /* System.out.println("File content length :" + fileContent.getBytes().length);
                 System.out.println(fileContent);
 
                 System.out.println("Padlength :" + padLength + "\n");
                 System.out.println("Cipher Length :" + cipherLen);
-                // Generate the AES 256 bit key
+*/                // Generate the AES 256 bit key
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 md.update(hpwd.toByteArray());
                 byte[] aesKey = md.digest();
-                System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
+              //  System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
 
                 String encryptedVal = AES.encrypt(fileContent, aesKey);
-                System.out.println("Encrypted file content :" + encryptedVal + "\n Enc File Size :" + new BASE64Decoder().decodeBuffer(encryptedVal).length);
+               // System.out.println("Encrypted file content :" + encryptedVal + "\n Enc File Size :" + new BASE64Decoder().decodeBuffer(encryptedVal).length);
 
                 // Output to history file
                 PrintWriter out = new PrintWriter(new FileWriter(histFileHash));
@@ -555,7 +584,7 @@ public class passwordGUI extends javax.swing.JFrame {
 
                 out.close();
                 String decryptedVal = AES.decrypt(encryptedVal, aesKey);
-                System.out.println("Decrypted String : " + decryptedVal);
+               // System.out.println("Decrypted String : " + decryptedVal);
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -589,7 +618,7 @@ public class passwordGUI extends javax.swing.JFrame {
 
     private static BigInteger generateYVal(BigInteger[] coeffArr, BigInteger xVal) {
         BigInteger yVal = BigInteger.ZERO;
-        System.out.println("Coeff Array Length :" + coeffArr.length);
+      //  System.out.println("Coeff Array Length :" + coeffArr.length);
         for (int j = 0; j < coeffArr.length; j++) {
             yVal = yVal.add(coeffArr[j].multiply(xVal.pow(j)));
         }
@@ -603,7 +632,7 @@ public class passwordGUI extends javax.swing.JFrame {
         Random randP = new SecureRandom();
         for (int i = 1; i < m; i++) {
             returnArr[i] = BigInteger.valueOf(randP.nextInt(100)); // Max value set to 100
-            System.out.println("Coeff " + i + "::" + returnArr[i]);
+          //  System.out.println("Coeff " + i + "::" + returnArr[i]);
         }
         return returnArr;
     }
@@ -623,8 +652,8 @@ public class passwordGUI extends javax.swing.JFrame {
     //type specifies if it is alpha or beta
     //number specifies which feature number it is
     private BigInteger calcYCoord(BigInteger value, char type, int number) {
-        //String password = new String(passwordTextField.getPassword());
-        String password = "test";
+        String password = new String(passwordTextField.getPassword());
+        //String password = "test";
         BigInteger q = prime;
         BigInteger yValue = BigInteger.valueOf(-1);
 
