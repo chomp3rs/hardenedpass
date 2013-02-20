@@ -458,7 +458,7 @@ public class passwordGUI extends javax.swing.JFrame {
             if (hashString.equals(histcontentHashString)) {
                 System.out.println("Hash values match!");
                 //not enough successful logins to make decisions on alpha and beta
-                if (Integer.parseInt(histcontent.split("\n")[0].split("\n")[0]) == -1) {
+                if (Integer.parseInt(histcontent.split("\n")[0].split(",")[0]) == -1) {
                     updateInstructionNormal(instructFile);
                     //update the history file here as well
                 } else {
@@ -475,7 +475,7 @@ public class passwordGUI extends javax.swing.JFrame {
                     int deviation5 = 0;
                     for (int j = 0; j < 5; j++) {
                         //need to put a check here to make sure that all the values are from successful logins
-                        history[j] = histcontent.split("\n")[j].split("\n");
+                        history[j] = histcontent.split("\n")[j].split(",");
                         mean1 += Integer.parseInt(history[j][0]);
                         mean2 += Integer.parseInt(history[j][1]);
                         mean3 += Integer.parseInt(history[j][2]);
