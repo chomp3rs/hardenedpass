@@ -542,11 +542,13 @@ public class passwordGUI extends javax.swing.JFrame {
 					 //case 2 is good beta
 					 //case 3 is both good
 
+					  int kVal = 2; // Pick from properties file
+					  
 					 for(int k = 0 ; k < 5 ; k++)
 					 {
-						 if (meanVals[k] - devVals[k] < threshVals[k]) {
+						 if (threshVals[k] > (meanVals[k] + kVal * devVals[k])) {
 							 caseTypes[k] = 1;
-						 } else if (meanVals[k] + devVals[k] > threshVals[k]) {
+						 } else if (threshVals[k] < (meanVals[k] - kVal * devVals[k]) ) {
 							 caseTypes[k] = 2;
 						 } else {
 							 caseTypes[k] = 3;
@@ -842,7 +844,15 @@ public class passwordGUI extends javax.swing.JFrame {
 		return returnArr;
 	}
 
-	public static BigInteger getHPassword(BigInteger qVal) {
+	private static BigInteger generateGarbageValue(BigInteger compareVal)
+	{
+		
+		Random randP = new SecureRandom();
+		while(BigInteger.valueOf(randP.nextInt(100)).equals(compareVal));
+		
+		return BigInteger.valueOf(randP.nextInt(100));
+	}
+	private static BigInteger getHPassword(BigInteger qVal) {
 		Random rnd = new Random();
 		do {
 			BigInteger i = new BigInteger(qVal.bitLength(), rnd);
@@ -917,11 +927,14 @@ public class passwordGUI extends javax.swing.JFrame {
 					BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash(alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 					BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).mod(q);
 
-					byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
-					BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
+					
 					//purposely calculate beta incorrectly
-					BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).multiply(KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
+					BigInteger garbageVal = generateGarbageValue(pointList.get(1).getY());
+					byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
+					BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
+					BigInteger betaValue = (garbageVal.multiply(keyedHashValBeta)).mod(q);
 
+					
 					String contentRow = i + "," + alphaValue + "," + betaValue + "\n";
 					instnfileContent += contentRow;
 				} else if (caseTypes[i - 1] == 2) {
@@ -931,10 +944,11 @@ public class passwordGUI extends javax.swing.JFrame {
 					byte[] alphaData = BigInteger.valueOf(2 * i).toByteArray();
 					BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash(alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 					//purposely calculate alpha incorrectly
-					BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).multiply(KeyedHash.calculateKeyedHash(alphaData, password)).mod(q);
+					BigInteger garbageVal = generateGarbageValue(pointList.get(0).getY());
+					BigInteger alphaValue = (garbageVal.multiply(keyedHashValAlpha)).multiply(KeyedHash.calculateKeyedHash(alphaData, password)).mod(q);
 
 					byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
-					BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
+					BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 					BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
 					String contentRow = i + "," + alphaValue + "," + betaValue + "\n";
@@ -948,7 +962,7 @@ public class passwordGUI extends javax.swing.JFrame {
 					BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).mod(q);
 
 					byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
-					BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
+					BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 					BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
 					String contentRow = i + "," + alphaValue + "," + betaValue + "\n";
@@ -1002,7 +1016,7 @@ public class passwordGUI extends javax.swing.JFrame {
 				BigInteger modGPM = keyedHashValAlpha.modInverse(q);
 				System.out.println("Y Val GPM ::" + alphaValue.multiply(modGPM).mod(q));
 				byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
-				BigInteger keyedHashValBeta = (KeyedHash.calculateKeyedHash(betaData, password)).mod(q);
+				BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 				BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
 
 
