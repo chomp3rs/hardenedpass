@@ -450,21 +450,25 @@ public class passwordGUI extends javax.swing.JFrame {
 			System.out.println("password " + password);
 			
 			BigInteger histcontentHashVal = KeyedHash.calculateKeyedHash(histcontent.getBytes(), password);
-			String histcontentHashString = new String(histcontentHashVal.toByteArray());
+			System.out.println("histcontentHashVal :" + histcontentHashVal);
+			/*String histcontentHashString = new String(histcontentHashVal.toByteArray());
 			System.out.println("histcontentHashVal" + histcontentHashString + histcontentHashString.length());
-			String hashString = histContArr[1];
-			System.out.println("file hash string" + hashString + hashString.length());
-            System.out.println("GPM Equal??" + Arrays.equals(histcontentHashVal.toByteArray(), hashString.getBytes()));
+			*/
+			BigInteger histFilehashVal = new BigInteger(histContArr[1]);
+			System.out.println("File hash :" + histFilehashVal);
+			/*System.out.println("file hash string" + hashString + hashString.length());*/
+			/*System.out.println("GPM Equal??" + hashString.equals(histcontentHashString));*/
+            //System.out.println("GPM Equal??" + Arrays.equals(histcontentHashVal.toByteArray(), hashString.getBytes()));
             
-            for (int p = 0; p < hashString.length(); ++p)
+         /*   for (int p = 0; p < hashString.length(); ++p)
             {
-            	if (hashString.codePointAt(p) != histcontentHashString.codePointAt(p))
+            	if (hashString.charAt(p) != histcontentHashString.charAt(p))
             	{
-            		System.out.println("Hash doesn't match at index" + p);
+            		System.out.println("Hash doesn't match at index" + p + " " + hashString.charAt(p) + " " + histcontentHashString.charAt(p));
             	}
             }
-            
-			if (hashString.equals(histcontentHashString)) {
+            */
+			if (histcontentHashVal.equals(histFilehashVal)) {
 				System.out.println("Hash values match!");
 				//not enough successful logins to make decisions on alpha and beta
 				if (Integer.parseInt(histcontent.split("\n")[0].split(",")[0]) == -1) {
@@ -765,11 +769,11 @@ public class passwordGUI extends javax.swing.JFrame {
 			BigInteger contentHashVal = KeyedHash.calculateKeyedHash(fileContent.getBytes(), password);
 			String contentHashString = new String(contentHashVal.toByteArray());
 			
-			System.out.println("Hash String Length" + contentHashString.getBytes().length);
+			System.out.println("Hash String Length" + contentHashVal.bitLength());
 			
 			fileContent += "HashValue:";
 
-			fileContent += contentHashString;
+			fileContent += contentHashVal;
 			/* System.out.println("File content length :" + fileContent.getBytes().length);
               System.out.println(fileContent);
 
