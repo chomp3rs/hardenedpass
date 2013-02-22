@@ -1,17 +1,16 @@
-package hardenedpass;
+package com.gt.hardenedpwd;
 
-import hardenedpass.AES;
-import hardenedpass.KeyedHash;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
+
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.math.BigDecimal;
+
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,17 +20,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 
+import com.gt.hardenedpwd.data.Point;
+import com.gt.hardenedpwd.util.AES;
+import com.gt.hardenedpwd.util.HPMath;
+import com.gt.hardenedpwd.util.KeyedHash;
 
-
-import sun.misc.BASE64Decoder;
 
 public class passwordGUI extends javax.swing.JFrame {
 
@@ -49,7 +50,8 @@ public class passwordGUI extends javax.swing.JFrame {
 	private int[] threshVals = new int[5];
 
 	private BigInteger prime;
-	private int m = 5; // No of features
+	private int m;
+	private int kVal;
 
 	public passwordGUI() {
 		initComponents();
@@ -57,11 +59,15 @@ public class passwordGUI extends javax.swing.JFrame {
 		successPanel.setVisible(false);
 		failPanel.setVisible(false);
 		BufferedReader read;
+		Properties prop = new Properties();
 		try {
+			prop.load(new FileInputStream("config.properties"));
 			read = new BufferedReader(new FileReader("systemSettings.txt"));
-			prime = new BigInteger(read.readLine());
-			for(int i = 0 ; i < 5 ; i++)
-				threshVals[i] = Integer.parseInt(read.readLine());
+			prime = new BigInteger(prop.getProperty("q"));
+			m = Integer.parseInt(prop.getProperty("m"));
+			kVal = Integer.parseInt(prop.getProperty("k"));
+			for(int i = 0 ; i < m ; i++)
+				threshVals[i] = Integer.parseInt(prop.getProperty("threshValue" + (i+1)));
 
 		} catch (IOException ex) {
 			Logger.getLogger(passwordGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -276,8 +282,6 @@ public class passwordGUI extends javax.swing.JFrame {
 				String instructionFileHash = numberInstruct.toString(16);
 				histFile = new File(histFileHash + ".txt");
 				instructFile = new File(instructionFileHash + ".txt");
-				//System.out.println("hist: " + histFile); //debug line
-				//System.out.println("inst: " + instructFile); //debug line
 
 				if (histFile.exists() && instructFile.exists()) {
 					loginPanel.setVisible(false);
@@ -313,7 +317,7 @@ public class passwordGUI extends javax.swing.JFrame {
 
 			String[] fileContentLines = fileContent.split("\n");
 
-			for (int i = 0; i < 5; i++) {
+			for (int i = 0; i < m; i++) {
 				instructions[i] = fileContentLines[i].split(",");
 			}
 
@@ -400,7 +404,7 @@ public class passwordGUI extends javax.swing.JFrame {
 				coords[count - 1][1] = calcYCoord(f5, 'b', count);
 				count++;
 			}
-			//    System.out.println("coords[4]:  " + Arrays.toString(coords[4]));//debug line
+
 
 			//the following recovers Hpw
 			BigInteger hpwdd = BigInteger.ZERO;
@@ -435,14 +439,10 @@ public class passwordGUI extends javax.swing.JFrame {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			md.update(hpwdd.toByteArray());
 			byte[] aesKey = md.digest();
-			//  System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
-
 
 			String histFileContent = AES.decrypt(encHistContent, aesKey);
 			System.out.println("History File Content : " + histFileContent);
 
-
-			//histFileContent = histFileContent.replaceAll("#", "");
 			System.out.println("Hist after rem padding" + histFileContent);
 			String[] histContArr = histFileContent.split("HashValue:");
 			String histcontent = histContArr[0];
@@ -451,23 +451,8 @@ public class passwordGUI extends javax.swing.JFrame {
 			
 			BigInteger histcontentHashVal = KeyedHash.calculateKeyedHash(histcontent.getBytes(), password);
 			System.out.println("histcontentHashVal :" + histcontentHashVal);
-			/*String histcontentHashString = new String(histcontentHashVal.toByteArray());
-			System.out.println("histcontentHashVal" + histcontentHashString + histcontentHashString.length());
-			*/
 			BigInteger histFilehashVal = new BigInteger(histContArr[1]);
 			System.out.println("File hash :" + histFilehashVal);
-			/*System.out.println("file hash string" + hashString + hashString.length());*/
-			/*System.out.println("GPM Equal??" + hashString.equals(histcontentHashString));*/
-            //System.out.println("GPM Equal??" + Arrays.equals(histcontentHashVal.toByteArray(), hashString.getBytes()));
-            
-         /*   for (int p = 0; p < hashString.length(); ++p)
-            {
-            	if (hashString.charAt(p) != histcontentHashString.charAt(p))
-            	{
-            		System.out.println("Hash doesn't match at index" + p + " " + hashString.charAt(p) + " " + histcontentHashString.charAt(p));
-            	}
-            }
-            */
 			if (histcontentHashVal.equals(histFilehashVal)) {
 				System.out.println("Hash values match!");
 				//not enough successful logins to make decisions on alpha and beta
@@ -477,16 +462,6 @@ public class passwordGUI extends javax.swing.JFrame {
 
 				} else {
 					int[][] history = new int[5][20];
-					/*int mean1 = 0;
-                    int mean2 = 0;
-                    int mean3 = 0;
-                    int mean4 = 0;
-                    int mean5 = 0;
-                    int deviation1 = 0;
-                    int deviation2 = 0;
-                    int deviation3 = 0;
-                    int deviation4 = 0;
-                    int deviation5 = 0;*/
 					double[] meanVals = new double[5];
 					double[] devVals = new double[5];
 					// Populate history array
@@ -509,42 +484,12 @@ public class passwordGUI extends javax.swing.JFrame {
 						meanVals[j] = HPMath.mean(history[j]);
 						devVals[j] = HPMath.stddev(history[j]);
 					}
-
-
-
-					/*for (int j = 0; j < 5; j++) {
-                        //need to put a check here to make sure that all the values are from successful logins
-                        history[j] = histcontent.split("\n")[j].split(",");
-                        mean1 += Integer.parseInt(history[j][0]);
-                        mean2 += Integer.parseInt(history[j][1]);
-                        mean3 += Integer.parseInt(history[j][2]);
-                        mean4 += Integer.parseInt(history[j][3]);
-                        mean5 += Integer.parseInt(history[j][4]);
-                        System.out.println("history: " + Arrays.toString(history[j]));//debug line
-                    }*/
-					//calc std deviation
-					/*for (int j = 0; j < 5; ++j) {
-                        deviation1 += (int) Math.pow(Integer.parseInt(history[j][0]) - mean1, 2);
-                        deviation2 += (int) Math.pow(Integer.parseInt(history[j][1]) - mean1, 2);
-                        deviation3 += (int) Math.pow(Integer.parseInt(history[j][2]) - mean1, 2);
-                        deviation4 += (int) Math.pow(Integer.parseInt(history[j][3]) - mean1, 2);
-                        deviation5 += (int) Math.pow(Integer.parseInt(history[j][4]) - mean1, 2);
-                    }
-                    deviation1 = (int) Math.sqrt(deviation1 / mean1);
-                    deviation2 = (int) Math.sqrt(deviation2 / mean2);
-                    deviation3 = (int) Math.sqrt(deviation3 / mean3);
-                    deviation4 = (int) Math.sqrt(deviation4 / mean4);
-                    deviation5 = (int) Math.sqrt(deviation5 / mean5);
-
-					 */                    
 					  int caseTypes[] = new int[5];
 					 //case 1 is good alpha
 					 //case 2 is good beta
 					 //case 3 is both good
 
-					  int kVal = 2; // Pick from properties file
-					  
-					 for(int k = 0 ; k < 5 ; k++)
+					  for(int k = 0 ; k < 5 ; k++)
 					 {
 						 if (threshVals[k] > (meanVals[k] + kVal * devVals[k])) {
 							 caseTypes[k] = 1;
@@ -555,34 +500,7 @@ public class passwordGUI extends javax.swing.JFrame {
 						 }
 
 					 }
-					 /* if (mean2 - deviation2 < q2Thresh) {
-                        caseTypes[1] = 1;
-                    } else if (mean2 + deviation2 > q2Thresh) {
-                        caseTypes[1] = 2;
-                    } else {
-                        caseTypes[1] = 3;
-                    }
-                    if (mean3 - deviation3 < q3Thresh) {
-                        caseTypes[2] = 1;
-                    } else if (mean3 + deviation3 > q3Thresh) {
-                        caseTypes[2] = 2;
-                    } else {
-                        caseTypes[2] = 3;
-                    }
-                    if (mean4 - deviation4 < q4Thresh) {
-                        caseTypes[3] = 1;
-                    } else if (mean4 + deviation4 > q4Thresh) {
-                        caseTypes[3] = 2;
-                    } else {
-                        caseTypes[3] = 3;
-                    }
-                    if (mean5 - deviation5 < q5Thresh) {
-                        caseTypes[4] = 1;
-                    } else if (mean5 + deviation5 > q5Thresh) {
-                        caseTypes[4] = 2;
-                    } else {
-                        caseTypes[4] = 3;
-                    }*/
+
 					 updateInstructionAdjusted(histFile, caseTypes);
 				}
 
@@ -682,13 +600,13 @@ public class passwordGUI extends javax.swing.JFrame {
 	private void initialization(File histFileHash, File instructFileHash) {
 		Random randQ = new SecureRandom();
 		BigInteger q = prime;
-		//     System.out.println("Value for q is :" + q);
+
 		BigInteger hpwd = getHPassword(q);
 		System.out.println("Value for hpwd :" + hpwd);
 
 		String password = new String(passwordTextField.getPassword());
-		/*        String password = "test";*/
-		int m = 5; // No of features
+
+
 		BigInteger[] coeffArr = generateRandCoeffs(m);
 		coeffArr[0] = hpwd;
 
@@ -756,14 +674,10 @@ public class passwordGUI extends javax.swing.JFrame {
 			
 			int maxHistorySize = 3200; // in Bytes
 			int mesgLength = fileContent.getBytes().length + 32 + 10;
-			
-
-			//     System.out.println("Content size is:" + mesgLength);
-
 			int cipherLen = (mesgLength / 16 + 1) * 16;
 
 			int padLength = ((maxHistorySize) * (mesgLength)) / cipherLen - cipherLen;
-			//  System.out.println("Padlength :" + padLength);
+
 			for (int i = 0; i < padLength - 1; i++) {
 				fileContent += '#';
 			}
@@ -776,21 +690,12 @@ public class passwordGUI extends javax.swing.JFrame {
 			fileContent += "HashValue:";
 
 			fileContent += contentHashVal;
-			/* System.out.println("File content length :" + fileContent.getBytes().length);
-              System.out.println(fileContent);
-
-              System.out.println("Padlength :" + padLength + "\n");
-              System.out.println("Cipher Length :" + cipherLen);
-			 */                // Generate the AES 256 bit key
-
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			md.update(hpwd.toByteArray());
 			byte[] aesKey = md.digest();
-			//  System.out.println("AES Key Size:" + aesKey.length + aesKey.toString());
+
 
 			String encryptedVal1 = AES.encrypt(fileContent, aesKey);
-			// System.out.println("Encrypted file content :" + encryptedVal + "\n Enc File Size :" + new BASE64Decoder().decodeBuffer(encryptedVal).length);
-
 			// Output to history file
 			PrintWriter out = new PrintWriter(new FileWriter(histFileHash));
 			out.print(encryptedVal1);
@@ -825,7 +730,7 @@ public class passwordGUI extends javax.swing.JFrame {
 
 	private static BigInteger generateYVal(BigInteger[] coeffArr, BigInteger xVal) {
 		BigInteger yVal = BigInteger.ZERO;
-		//  System.out.println("Coeff Array Length :" + coeffArr.length);
+
 		for (int j = 0; j < coeffArr.length; j++) {
 			yVal = yVal.add(coeffArr[j].multiply(xVal.pow(j)));
 		}
@@ -839,7 +744,7 @@ public class passwordGUI extends javax.swing.JFrame {
 		Random randP = new SecureRandom();
 		for (int i = 1; i < m; i++) {
 			returnArr[i] = BigInteger.valueOf(randP.nextInt(100)); // Max value set to 100
-			//  System.out.println("Coeff " + i + "::" + returnArr[i]);
+
 		}
 		return returnArr;
 	}
@@ -868,27 +773,21 @@ public class passwordGUI extends javax.swing.JFrame {
 	//number specifies which feature number it is
 	private BigInteger calcYCoord(BigInteger value, char type, int number) {
 		String password = new String(passwordTextField.getPassword());
-		//String password = "test";
+
 		BigInteger q = prime;
 		BigInteger yValue = BigInteger.valueOf(-1);
 
 		try {
 			if (type == 'a') {
-				//System.out.println("a feature num , val " + number + "," + value);
-				//System.out.println("q val" + q);
 				byte[] alphaData = BigInteger.valueOf(2 * number).toByteArray();
 				BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash(alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
-				//System.out.println("keyedHash: " + keyedHashValAlpha);
 				BigInteger modGPM = keyedHashValAlpha.modInverse(q);
-				//System.out.println("Y Val GPM ::" + value.multiply(modGPM).mod(q));
 				yValue = value.multiply(modGPM).mod(q);
 
 			} else {
 				byte[] betaData = BigInteger.valueOf(2 * number + 1).toByteArray();
 				BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
-				//System.out.println("keyedHash: " + keyedHashValBeta);
 				BigInteger modGPM = keyedHashValBeta.modInverse(q);
-				//System.out.println("Y Val GPM ::" + value.multiply(modGPM).mod(q));
 				yValue = value.multiply(modGPM).mod(q);
 			}
 		} catch (SignatureException ex) {
@@ -899,13 +798,11 @@ public class passwordGUI extends javax.swing.JFrame {
 
 	private void updateInstructionAdjusted(File instructFileHash, int[] caseTypes) {
 		BigInteger q = prime;
-		//     System.out.println("Value for q is :" + q);
 		BigInteger hpwd = getHPassword(q);
 		System.out.println("Value for hpwd :" + hpwd);
 
 		String password = new String(passwordTextField.getPassword());
-		/*        String password = "test";*/
-		int m = 5; // No of features
+		
 		BigInteger[] coeffArr = generateRandCoeffs(m);
 		coeffArr[0] = hpwd;
 
@@ -985,13 +882,9 @@ public class passwordGUI extends javax.swing.JFrame {
 
 	private void updateInstructionNormal(File instructFileHash , BigInteger hpwd) {
 		BigInteger q = prime;
-		//     System.out.println("Value for q is :" + q);
-		//BigInteger hpwd = getHPassword(q);
 		System.out.println("Value for hpwd :" + hpwd);
 
 		String password = new String(passwordTextField.getPassword());
-		/*        String password = "test";*/
-		int m = 5; // No of features
 		BigInteger[] coeffArr = generateRandCoeffs(m);
 		coeffArr[0] = hpwd;
 
@@ -1002,24 +895,18 @@ public class passwordGUI extends javax.swing.JFrame {
 		try {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(instructFileHash));
 			while (iter.hasNext()) {
-
 				Integer i = (Integer) iter.next();
-
 				ArrayList<Point> pointList = (ArrayList<Point>) XYValuesMap.get(i);
 
 				byte[] alphaData = BigInteger.valueOf(2 * i).toByteArray();
 				BigInteger keyedHashValAlpha = ((KeyedHash.calculateKeyedHash(alphaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 				BigInteger alphaValue = (pointList.get(0).getY().multiply(keyedHashValAlpha)).mod(q);
 
-				System.out.println("X Val ::" + pointList.get(0).getX());
-				System.out.println("Y Val ::" + pointList.get(0).getY());
 				BigInteger modGPM = keyedHashValAlpha.modInverse(q);
 				System.out.println("Y Val GPM ::" + alphaValue.multiply(modGPM).mod(q));
 				byte[] betaData = BigInteger.valueOf(2 * i + 1).toByteArray();
 				BigInteger keyedHashValBeta = ((KeyedHash.calculateKeyedHash(betaData, password)).mod(q.subtract(BigInteger.ONE)).add(BigInteger.ONE));
 				BigInteger betaValue = (pointList.get(1).getY().multiply(keyedHashValBeta)).mod(q);
-
-
 				String contentRow = i + "," + alphaValue + "," + betaValue + "\n";
 				instnfileContent += contentRow;
 			}

@@ -1,4 +1,4 @@
-package hardenedpass;
+package com.gt.hardenedpwd.data;
 import java.math.BigInteger;
 
 

@@ -1,4 +1,4 @@
-package hardenedpass;
+package com.gt.hardenedpwd.util;
 public final class HPMath {
     /**
      * Return average value in array, NaN if no such value.

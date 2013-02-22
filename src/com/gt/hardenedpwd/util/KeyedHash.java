@@ -1,4 +1,4 @@
-package hardenedpass;
+package com.gt.hardenedpwd.util;
 
 import java.math.BigInteger;
 import java.security.SignatureException;

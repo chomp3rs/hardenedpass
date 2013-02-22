@@ -1,4 +1,4 @@
-package hardenedpass;
+package com.gt.hardenedpwd.util;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.Cipher;
